@@ -68,7 +68,14 @@ app.get('/api/rooms/:code', wrap((req) => {
 
 app.post('/api/rooms/:code/join', wrap((req) => {
   limited(`join:${req.ip}`, 30, 60_000);
-  return { code: arena.room(req.params.code).state.code, ...arena.join(req.params.code, req.body?.name) };
+  const code = arena.room(req.params.code).state.code;
+  const { reclaimed, ...who } = arena.join(code, req.body?.name);
+  if (reclaimed) { // the same person on a new tab/device: close the old one so only one copy of the seat is live
+    const target = `${code}:${who.participantId}`;
+    io.to(target).emit('replaced');
+    io.in(target).disconnectSockets(true);
+  }
+  return { code, ...who };
 }));
 
 app.get('/api/rooms/:code/transactions', wrap(async (req) => {

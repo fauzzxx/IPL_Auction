@@ -104,6 +104,7 @@ export class Arena {
     this.rooms.set(code, room);
     const who = this.join(code, hostName);
     state.hostId = who.participantId;
+    state.creatorId = who.participantId;
     state.participants[0].isHost = true;
     this.log(room, 'room', `${state.participants[0].name} created the room`);
     this.commit(room, true);
@@ -117,6 +118,23 @@ export class Arena {
   join(code: string, name: string) {
     const room = this.room(code);
     const nm = clean(name, 20) || fail('Enter a display name');
+    // Rejoining with the same name gives back your old seat (franchise, purse, squad) if that seat is offline.
+    // A phone in the background can keep a dead connection looking "online" for ~45s, so the seat is reclaimed
+    // either way; the old connection is closed by the caller (see `reclaimed`).
+    const s = room.state;
+    const old = s.participants.find((p) => p.name.toLowerCase() === nm.toLowerCase());
+    if (old && s.hostId) {
+      const token = randomBytes(24).toString('hex');
+      room.secrets.set(old.id, { token, userId: room.secrets.get(old.id)?.userId ?? randomUUID() });
+      if (s.creatorId === old.id && s.hostId !== old.id) { // the room's creator always gets host controls back
+        s.participants.forEach((p) => (p.isHost = p.id === old.id));
+        s.hostId = old.id;
+        clearTimeout(room.hostTimer);
+        this.log(room, 'room', `${old.name} is back and is the host again`);
+      } else this.log(room, 'room', `${old.name} rejoined`);
+      this.commit(room);
+      return { participantId: old.id, token, reclaimed: true };
+    }
     if (room.state.participants.length >= 40) fail('Room is full');
     const p: Participant = { id: randomUUID(), name: nm, teamId: null, connected: false, isHost: false };
     room.state.participants.push(p);
@@ -124,7 +142,7 @@ export class Arena {
     room.secrets.set(p.id, { token, userId: randomUUID() });
     room.wishlists.set(p.id, []);
     if (room.state.hostId) { this.log(room, 'room', `${nm} joined`); this.commit(room); }
-    return { participantId: p.id, token };
+    return { participantId: p.id, token, reclaimed: false };
   }
 
   auth(code: string, pid: string, token: string): Room {

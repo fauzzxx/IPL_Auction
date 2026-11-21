@@ -167,6 +167,7 @@ export interface RoomState {
   code: string;
   name: string;
   hostId: string;
+  creatorId?: string; // the participant who created the room
   phase: 'lobby' | 'retention' | 'auction' | 'ended';
   paused: boolean;
   settings: Settings;

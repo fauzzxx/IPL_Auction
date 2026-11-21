@@ -162,8 +162,19 @@ async function run() {
   ok((await host.act('kick', { participantId: d.pid })).ok, 'host can remove a participant');
   await sleep(100);
   ok(!host.state.participants.some((p) => p.id === d.pid) && d.socket.disconnected, 'removed participant is disconnected');
+  b.socket.close(); await sleep(150);
+  const again = await post(`/api/rooms/${created.code}/join`, { name: 'bea' });
+  ok(again.participantId === b.pid, 'rejoining with the same name gets the old seat back');
+  const b2 = new Client(created.code, again.participantId, again.token); await b2.connect(); await sleep(100);
+  ok(b2.state.participants.find((p) => p.id === b.pid)!.teamId === 'MI' && b2.state.participants.length === host.state.participants.length, 'same franchise, no duplicate player');
+  const again2 = await post(`/api/rooms/${created.code}/join`, { name: 'Bea' }); await sleep(100);
+  ok(again2.participantId === b.pid && b2.socket.disconnected, 'quick rejoin while the old connection looks alive: same seat, old tab closed');
+  const b3 = new Client(created.code, again2.participantId, again2.token); await b3.connect(); await sleep(50);
+  ok(!!b3.state.lot === !!host.state.lot && b3.state.teams.MI.purse === host.state.teams.MI.purse, 'rejoined player sees the live lot and the correct purse');
   host.socket.close(); await sleep(1300);
-  ok(b.state.hostId !== host.pid && b.state.participants.find((p) => p.id === b.state.hostId)!.connected, 'host seat transfers when the host stays disconnected');
+  ok(b3.state.hostId !== host.pid && b3.state.participants.find((p) => p.id === b3.state.hostId)!.connected, 'host seat transfers when the host stays disconnected');
+  const hb = await post(`/api/rooms/${created.code}/join`, { name: 'Host' }); await sleep(100);
+  ok(hb.participantId === host.pid && b3.state.hostId === host.pid, 'room creator rejoins by name and gets host controls back');
 
   console.log(`\n${pass} passed, ${failN} failed`);
 }

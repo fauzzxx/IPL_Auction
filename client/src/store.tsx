@@ -101,12 +101,18 @@ export function RoomProvider({ code, session, onLost, children, fallback }: { co
     sock.current = s;
     s.on('connect', () => setConnected(true));
     s.on('disconnect', () => setConnected(false));
-    s.on('connect_error', (e) => { if (/expired|not found|Unauthorized/i.test(e.message)) onLost(e.message); });
+    // Only a truly invalid seat ends the session; network blips and missing rooms just keep retrying.
+    s.on('connect_error', (e) => { if (/expired/i.test(e.message)) onLost(e.message); });
     s.on('state', (st: RoomState) => { setOffset(st.serverNow - Date.now()); setState(st); });
     s.on('pool', setPool);
     s.on('me', setMe);
     s.on('kicked', () => onLost('You were removed from the room by the host'));
-    return () => { s.close(); };
+    s.on('replaced', () => onLost('Your seat was opened on another tab or device'));
+    // Phones pause background tabs: reconnect the moment the auction page is visible again.
+    const wake = () => { if (document.visibilityState === 'visible' && !s.connected) s.connect(); };
+    document.addEventListener('visibilitychange', wake);
+    window.addEventListener('focus', wake);
+    return () => { document.removeEventListener('visibilitychange', wake); window.removeEventListener('focus', wake); s.close(); };
   }, [code, session.participantId, session.token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const act = useCallback((type: string, payload?: unknown) => new Promise<boolean>((resolve) => {

@@ -47,7 +47,15 @@ export default function Landing() {
     e.preventDefault();
     const c = code.trim().toUpperCase().replace(/.*\/room\//i, '').slice(0, 8);
     if (!c) return toast('Enter a room code');
-    try { await api(`/rooms/${c}`); if (name.trim()) saveName(name.trim()); go(`/room/${c}`); } catch (err: any) { toast(err.message); }
+    try {
+      await api(`/rooms/${c}`);
+      if (name.trim()) { // rejoining with your name drops you straight back into your seat
+        const r = await api(`/rooms/${c}/join`, { name });
+        saveName(name.trim());
+        setSession(r.code, { participantId: r.participantId, token: r.token });
+      }
+      go(`/room/${c}`);
+    } catch (err: any) { toast(err.message); }
   };
 
   return (
