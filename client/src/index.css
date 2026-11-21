@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { color-scheme: dark; }
+  body {
+    @apply bg-ink-950 text-slate-200 font-sans antialiased;
+    background-image:
+      radial-gradient(1100px 500px at 15% -10%, rgba(91,140,255,.16), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(245,185,66,.10), transparent 55%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #27345c; border-radius: 8px; }
+  input, select, textarea { @apply bg-ink-800 border border-ink-500 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-gold/70 w-full; }
+  input[type='checkbox'] { @apply w-4 h-4 p-0 accent-amber-400; }
+  label { @apply text-xs font-medium text-slate-400; }
+}
+
+@layer components {
+  .card { @apply bg-ink-800/80 border border-ink-600 rounded-2xl shadow-card backdrop-blur; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition active:scale-[.97] disabled:opacity-40 disabled:pointer-events-none select-none; }
+  .btn-gold { @apply btn text-ink-950 bg-gradient-to-b from-gold-soft to-gold hover:brightness-110 shadow-glow; }
+  .btn-ghost { @apply btn bg-ink-700 border border-ink-500 text-slate-200 hover:bg-ink-600; }
+  .btn-danger { @apply btn bg-red-500/15 border border-red-500/40 text-red-300 hover:bg-red-500/25; }
+  .btn-green { @apply btn bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25; }
+  .chip { @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide; }
+  .display { @apply font-display font-bold tracking-wide uppercase; }
+  .h-section { @apply font-display text-xl font-bold uppercase tracking-wider text-slate-100; }
+}
+
+@keyframes stamp { 0% { transform: scale(3) rotate(-18deg); opacity: 0 } 60% { transform: scale(.92) rotate(-8deg); opacity: 1 } 100% { transform: scale(1) rotate(-8deg); opacity: 1 } }
+.stamp { animation: stamp .55s cubic-bezier(.2,.9,.3,1.2) both; }
+@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(245,185,66,.55) } 100% { box-shadow: 0 0 0 16px rgba(245,185,66,0) } }
+.pulse-ring { animation: pulse-ring 1.2s ease-out infinite; }
+
+@media print {
+  body { background: #fff !important; color: #000 !important; }
+  .no-print { display: none !important; }
+  .card { box-shadow: none !important; border-color: #ccc !important; background: #fff !important; break-inside: avoid; }
+  * { color: #000 !important; }
+}

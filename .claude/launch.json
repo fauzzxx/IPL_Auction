@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "arena", "runtimeExecutable": "npm", "runtimeArgs": ["start", "--prefix", "server"], "port": 4000 }
+  ]
+}

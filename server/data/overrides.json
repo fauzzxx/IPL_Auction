@@ -1,0 +1,8 @@
+{
+  "_note": "Manual corrections for players the automated Wikidata join could not match. Keyed by Cricsheet short name. Every player listed in indianUnmatched is an Indian domestic cricketer; overseas exceptions are listed explicitly.",
+  "nationality": {
+    "N Pooran": "West Indies", "NT Ellis": "Australia", "OC McCoy": "West Indies",
+    "K Santokie": "West Indies", "LG Pretorius": "South Africa"
+  },
+  "defaultUnmatchedNationality": "India"
+}

@@ -1,0 +1,227 @@
+// SQLite for zero-install local play. For deployment switch provider to "postgresql"
+// and point DATABASE_URL at a managed Postgres — the schema uses only portable types.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id
+  name         String
+  createdAt    DateTime      @default(now())
+  participants Participant[]
+}
+
+model PlayerCategory {
+  code    String   @id // BAT | WK | AR | BOWL
+  label   String
+  players Player[]
+}
+
+model Player {
+  id                  String            @id
+  name                String
+  shortName           String
+  fullName            String?
+  nationality         String
+  overseas            Boolean
+  role                String
+  category            PlayerCategory    @relation(fields: [role], references: [code])
+  secondaryRole       String?
+  roleSource          String
+  battingStyle        String?
+  bowlingStyle        String?
+  bowlingType         String?
+  battingPosition     String?
+  teams               String // comma separated franchise codes
+  seasons             String // comma separated years
+  matches             Int
+  active              Boolean
+  lastSeason          Int
+  basePrice           Int // arena base price in lakhs (configurable)
+  historicalBasePrice Int? // real auction base price in lakhs, only when imported from a verified source
+  photo               String?
+  dob                 String?
+  wikipedia           String?
+  stats               PlayerStatistics?
+}
+
+model PlayerStatistics {
+  playerId     String @id
+  player       Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  runs         Int
+  balls        Int
+  outs         Int
+  highScore    Int
+  fours        Int
+  sixes        Int
+  wickets      Int
+  ballsBowled  Int
+  runsConceded Int
+  catches      Int
+  stumpings    Int
+}
+
+model AuctionRoom {
+  code         String               @id
+  name         String
+  hostId       String
+  phase        String
+  snapshot     String // full authoritative state (JSON) for crash recovery
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  settings     AuctionSettings?
+  participants Participant[]
+  teams        Team[]
+  lots         Auction[]
+  bids         Bid[]
+  purchases    Purchase[]
+  squads       Squad[]
+  challenges   Challenge[]
+  challengeLog ChallengeHistory[]
+  transactions AuctionTransaction[]
+  retentions   Retention[]
+  rtmCards     RTMCard[]
+}
+
+model AuctionSettings {
+  roomCode String      @id
+  room     AuctionRoom @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+  json     String
+}
+
+model Participant {
+  id       String      @id
+  roomCode String
+  room     AuctionRoom @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+  userId   String
+  user     User        @relation(fields: [userId], references: [id])
+  name     String
+  token    String
+  teamId   String?
+  isHost   Boolean     @default(false)
+  wishlist String      @default("[]")
+}
+
+model Team {
+  id           Int         @id @default(autoincrement())
+  roomCode     String
+  room         AuctionRoom @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+  franchise    String
+  initialPurse Int
+  purse        Int
+
+  @@unique([roomCode, franchise])
+}
+
+model Auction {
+  id         Int         @id @default(autoincrement())
+  roomCode   String
+  room       AuctionRoom @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+  lotNo      Int
+  playerId   String
+  basePrice  Int
+  status     String // open | sold | unsold | skipped | cancelled | undone
+  finalPrice Int?
+  winner     String?
+  createdAt  DateTime    @default(now())
+
+  @@unique([roomCode, lotNo])
+}
+
+model Bid {
+  id        Int         @id @default(autoincrement())
+  roomCode  String
+  room      AuctionRoom @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+  lotNo     Int
+  playerId  String
+  franchise String
+  amount    Int
+  createdAt DateTime    @default(now())
+}
+
+model Purchase {
+  id        String      @id
+  roomCode  String
+  room      AuctionRoom @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+  playerId  String
+  franchise String
+  price     Int
+  via       String
+  undone    Boolean     @default(false)
+  createdAt DateTime    @default(now())
+}
+
+/// Current squad membership. The unique constraint guarantees a player can never be owned twice in one room.
+model Squad {
+  id        Int         @id @default(autoincrement())
+  roomCode  String
+  room      AuctionRoom @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+  franchise String
+  playerId  String
+  price     Int
+  via       String
+
+  @@unique([roomCode, playerId])
+}
+
+model Challenge {
+  id       Int         @id @default(autoincrement())
+  roomCode String
+  room     AuctionRoom @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+  key      String
+  json     String
+
+  @@unique([roomCode, key])
+}
+
+model ChallengeHistory {
+  id          String      @id
+  roomCode    String
+  room        AuctionRoom @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+  franchise   String
+  text        String
+  status      String
+  result      String
+  budgetDelta Int
+  released    String
+  createdAt   DateTime    @default(now())
+}
+
+/// Ledger of every purse movement.
+model AuctionTransaction {
+  id           Int         @id @default(autoincrement())
+  roomCode     String
+  room         AuctionRoom @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+  franchise    String
+  type         String // purchase | undo | challenge | release_refund | retention | fine
+  amount       Int // signed, lakhs
+  balanceAfter Int
+  note         String
+  createdAt    DateTime    @default(now())
+}
+
+model Retention {
+  id        Int         @id @default(autoincrement())
+  roomCode  String
+  room      AuctionRoom @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+  franchise String
+  playerId  String
+  cost      Int
+
+  @@unique([roomCode, playerId])
+}
+
+model RTMCard {
+  id        Int         @id @default(autoincrement())
+  roomCode  String
+  room      AuctionRoom @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+  franchise String
+  remaining Int
+
+  @@unique([roomCode, franchise])
+}
