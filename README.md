@@ -98,21 +98,17 @@ New players need at least `name`, `role` (BAT/WK/AR/BOWL) and `nationality`. Res
 
 ## Deploying on Vercel
 
-Use **one** public service: the Docker container `ipl-auction-arena`. It serves the website, `/api`,
-and Socket.IO from a single Node process so 7–8 phones share the same rooms, purses and wheels.
+This is a **single Container** app (the root `Dockerfile`). It serves the website, `/api` and Socket.IO
+from one process. Root Directory must be `./`. Application Preset must be **Container**, not Services.
 
-Do **not** import the Vite `client` and Express `server` as extra services. That would split the
-auction across processes and bidding would disagree between devices.
+Do not import `client` or `server` as separate projects.
 
-1. Import `fauzzxx/IPL_Auction` on Vercel (root `./`).
-2. Import the **container** service only (`ipl-auction-arena`), not “client” or “server”.
-3. `vercel.json` already routes every public path (`/`, `/api/*`, `/socket.io/*`, `/room/:code`) to that container.
-4. No `VITE_SERVER_URL` and no service bindings — the UI talks to the same origin.
+1. Import `fauzzxx/IPL_Auction`.
+2. Root Directory: **IPL_Auction (root)**.
+3. Application Preset: **Container**.
+4. Leave environment variables empty and deploy.
 
 After deploy, open `/api/health`. Then share `https://your-app.vercel.app/room/CODE`.
-
-Vercel may start more than one container under load. Room state is in memory, so a quiet 7–8 person
-session is the intended use. If a room “vanishes”, refresh together so everyone lands on a live instance.
 
 ### Render / Railway (optional, instead of Vercel)
 

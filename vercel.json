@@ -1,17 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "services": {
-    "ipl-auction-arena": {
-      "root": ".",
-      "framework": "container",
-      "runtime": "container",
-      "entrypoint": "Dockerfile"
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": { "service": "ipl-auction-arena" }
-    }
-  ]
+  "framework": "container"
 }
