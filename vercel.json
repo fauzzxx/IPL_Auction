@@ -1,10 +1,17 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
-  "installCommand": "npm install --prefix client",
-  "buildCommand": "npm run build --prefix client",
-  "outputDirectory": "client/dist",
+  "services": {
+    "ipl-auction-arena": {
+      "root": ".",
+      "framework": "container",
+      "runtime": "container",
+      "entrypoint": "Dockerfile"
+    }
+  },
   "rewrites": [
-    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+    {
+      "source": "/(.*)",
+      "destination": { "service": "ipl-auction-arena" }
+    }
   ]
 }

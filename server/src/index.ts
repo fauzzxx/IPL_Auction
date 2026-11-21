@@ -147,5 +147,11 @@ async function main() {
   http.keepAliveTimeout = 65_000;
   http.headersTimeout = 66_000;
   http.listen(PORT, HOST, () => console.log(`[arena] ${arena.playerList.length} players, ${arena.rooms.size} rooms restored — http://localhost:${PORT}`));
+  const shutdown = () => {
+    http.close(() => process.exit(0));
+    setTimeout(() => process.exit(1), 25_000).unref();
+  };
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 }
 main();

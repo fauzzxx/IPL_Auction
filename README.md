@@ -96,60 +96,33 @@ Virat Kohli,200
 
 New players need at least `name`, `role` (BAT/WK/AR/BOWL) and `nationality`. Restart the server afterwards.
 
-## Deploying (Vercel + a live game server)
+## Deploying on Vercel
 
-This app is a real-time auction: 7–8 phones stay connected, bid at the same time, share purses and
-challenge wheels. That needs **one always-on Node process** with Socket.IO. Vercel is a static/serverless
-host, so it can serve the website but **cannot** run the auction engine. If you import this repo into
-Vercel alone, rooms, bidding and the wheels will not work.
+Use **one** public service: the Docker container `ipl-auction-arena`. It serves the website, `/api`,
+and Socket.IO from a single Node process so 7–8 phones share the same rooms, purses and wheels.
 
-The working setup:
+Do **not** import the Vite `client` and Express `server` as extra services. That would split the
+auction across processes and bidding would disagree between devices.
 
-1. **Game server** (Render, Railway, Fly.io, or any VPS) — Node + SQLite, a **single instance**.
-2. **Website** (Vercel) — the React UI, talking to that server.
+1. Import `fauzzxx/IPL_Auction` on Vercel (root `./`).
+2. Import the **container** service only (`ipl-auction-arena`), not “client” or “server”.
+3. `vercel.json` already routes every public path (`/`, `/api/*`, `/socket.io/*`, `/room/:code`) to that container.
+4. No `VITE_SERVER_URL` and no service bindings — the UI talks to the same origin.
 
-### 1. Push this folder to GitHub
+After deploy, open `/api/health`. Then share `https://your-app.vercel.app/room/CODE`.
 
-The GitHub repo root should be this `ipl-auction-arena` folder (the one with `package.json` and `vercel.json`).
+Vercel may start more than one container under load. Room state is in memory, so a quiet 7–8 person
+session is the intended use. If a room “vanishes”, refresh together so everyone lands on a live instance.
 
-### 2. Deploy the game server first (Render)
+### Render / Railway (optional, instead of Vercel)
 
-1. Create a Web Service from this repo (Blueprint: `render.yaml`, or connect the repo and set):
-   - Build: `npm install && npm run setup && npm run build`
-   - Start: `npm start`
-   - Instance count: **1** (do not autoscale — every device must hit the same process)
-2. Environment:
-   - `DATABASE_URL=file:./arena.db`
-   - `CLIENT_ORIGINS=https://YOUR-APP.vercel.app` (add after step 3; until then any origin is allowed)
-3. Copy the public URL, e.g. `https://ipl-auction-arena.onrender.com`. Open `/api/health` — you should see `"ok": true`.
-
-Railway / Fly / a VPS: same commands. `PORT` is provided by the host. Bind address is `0.0.0.0`.
-
-Free Render services sleep after idle time. Wake them before a session, or use a paid always-on instance so
-the first friend to open the site is not waiting on a cold start.
-
-### 3. Deploy the UI on Vercel
-
-1. Import the same GitHub repo.
-2. Vercel reads `vercel.json` (framework: Other, output `client/dist`).
-3. **Environment variable (Production)** — required, then Redeploy:
-   - `VITE_SERVER_URL` = the game-server URL from step 2, **no trailing slash**
-     (`https://ipl-auction-arena.onrender.com`)
-4. After the Vercel URL exists, set `CLIENT_ORIGINS` on the game server to that URL and restart it.
-
-Friends open the **Vercel** link. Invite copies `https://your-app.vercel.app/room/CODE`. All 7–8 devices
-talk to the same game server over WebSocket (with HTTP long-polling as fallback).
-
-### One-box (no Vercel)
-
-On Render/Railway/Fly you can skip Vercel: the Node process also serves `client/dist`. Share that host’s URL.
-Do not put this process on Vercel.
+One Node process: `npm install && npm run setup && npm run build`, then `npm start`. Instance count: 1.
 
 ### PostgreSQL (optional)
 
 Change `provider = "sqlite"` to `"postgresql"` in `server/prisma/schema.prisma`, set `DATABASE_URL` to a
 managed database, and run `npm run db --prefix server`. SQLite on a single instance is enough for a friend
-auction. Do not run multiple server replicas — room state lives in memory on one process.
+auction.
 
 ## Notes
 
